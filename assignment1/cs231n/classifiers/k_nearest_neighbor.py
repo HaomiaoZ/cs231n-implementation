@@ -24,7 +24,8 @@ class KNearestNeighbor(object):
         self.X_train = X
         self.y_train = y
 
-    def predict(self, X, k=1, num_loops=0):
+    #changed default to 1 since has problem with no loop implemmentation
+    def predict(self, X, k=1, num_loops=1):
         """
         Predict labels for test data using this classifier.
 
@@ -77,7 +78,7 @@ class KNearestNeighbor(object):
                 #####################################################################
                 # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-                pass
+                dists[i,j]=np.sum((X[i]-self.X_train[j])**2)
 
                 # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         return dists
@@ -101,7 +102,8 @@ class KNearestNeighbor(object):
             #######################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-            pass
+            #implicit broadcasting of X[i,:] from (1*d) to (num_train*d) 
+            dists[i,:] = np.sum((X[i,:]-self.X_train)**2, axis=1)
 
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         return dists
@@ -131,7 +133,37 @@ class KNearestNeighbor(object):
         #########################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        
+        # problem, no sufficient memory for allocation, need 57.2GB, so cannot even run
+        # think this is wrong, can run after conversion but overflow, or has large difference
+        # assume X is n*d and X_train is k*d
+        # cencept should be right but not sure where is the problem, with small set it should be fine
+        X_broadcasted =np.broadcast_to(X, (num_train, num_test, X.shape[1])) #k*n*d
+        #print (X_broadcasted.shape)
+        X_train_broadcasted = np.broadcast_to(self.X_train,(num_test, num_train, X.shape[1])) #n*k*d
+        #print (X_train_broadcasted.shape)
+        X_broadcasted = np.swapaxes(X_broadcasted,0,1) #n*k*d
+        #print (X_broadcasted.shape)
+        dists =np.pow(np.subtract(X_broadcasted, X_train_broadcasted, dtype=np.float16),2)
+        dists =np.sum(dists,dtype=np.float32, axis=2)#n*k
+        #print (dists.shape)
+        
+        '''
+        #solution from https://github.com/mirzaim/cs231n/blob/master/assignments/assignment1/cs231n/classifiers/k_nearest_neighbor.py
+        #somehow need 57.2gb memory as well, probably have problem related to my venv setup or WSL
+        dists = np.sqrt(np.sum(np.power(self.X_train - np.repeat(X[:,np.newaxis,:], num_train, axis=1), 2), axis=2))
+        '''
+        '''
+        #solution from https://github.com/mantasu/cs231n/blob/master/assignment1/cs231n/classifiers/k_nearest_neighbor.py, need 57.6gb memory for me
+        dists = np.sqrt(
+          -2 * (X @ self.X_train.T) +
+          np.power(X, 2).sum(axis=1, keepdims=True) +
+          np.power(self.X_train, 2).sum(axis=1, keepdims=True).T
+        )
+        
+        dists = np.sqrt(np.sum(np.power(np.expand_dims(X, axis=1) - self.X_train, 2), axis=2))
+        '''
+
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         return dists
@@ -163,8 +195,8 @@ class KNearestNeighbor(object):
             # Hint: Look up the function numpy.argsort.                             #
             #########################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-            pass
+            sort_ind = np.argsort(dists[i])
+            closest_y = self.y_train[sort_ind]
 
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
             #########################################################################
@@ -175,8 +207,8 @@ class KNearestNeighbor(object):
             # label.                                                                #
             #########################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-            pass
+            values, counts = np.unique_counts(closest_y[0:k])
+            y_pred[i] =values[np.argmax(counts)]
 
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
