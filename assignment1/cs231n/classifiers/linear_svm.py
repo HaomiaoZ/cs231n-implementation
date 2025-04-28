@@ -124,7 +124,8 @@ def svm_loss_vectorized(W, X, y, reg):
     #############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    # skip vectorized svm grad implementation
+    # skip vectorized svm grad implementation for now
+
     num_classes = W.shape[1]
     for i in range(num_train):
         scores = X[i].dot(W)
