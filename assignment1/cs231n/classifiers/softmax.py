@@ -34,7 +34,21 @@ def softmax_loss_naive(W, X, y, reg):
     #############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    num_train =X.shape[0]  #N
+    num_class = W.shape[1] #C
+    dim = W.shape[0] #D
+
+    # compute loss
+    for i in range(num_train):
+        scores = X[i]@W
+        loss += -np.log(np.exp(scores[y[i]])/np.sum(np.exp(scores)))
+
+
+    # compute grad
+
+    loss /= num_train
+    loss += reg * np.sum(W * W)
+
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
