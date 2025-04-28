@@ -39,8 +39,11 @@ def svm_loss_naive(W, X, y, reg):
                 loss += margin
 
                 # add grad from hinge loss
-                dW[:,y[i]] += X[i]
-                dW[:,j] += -X[i]
+                # dW[:,y[i]] += X[i]
+                # dW[:,j] += -X[i]
+                # invert the sign
+                dW[:,y[i]] -= X[i]
+                dW[:,j] += X[i]
 
 
     # Right now the loss is a sum over all training examples, but we want it
@@ -60,6 +63,9 @@ def svm_loss_naive(W, X, y, reg):
     #############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     
+    # devide by num_train
+    dW /= num_train
+
     # add reguzariation grad
     dW += 2*reg*W
 
