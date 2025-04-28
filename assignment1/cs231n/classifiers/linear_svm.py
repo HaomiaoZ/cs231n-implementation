@@ -90,7 +90,25 @@ def svm_loss_vectorized(W, X, y, reg):
     #############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    # can be much faster without those loops, those loops ensure the implementation is correct for now
+    num_train = X.shape[0]
+
+    scores = X.dot(W) # N*C
+    correct_class_score= np.zeros((num_train,1)) # N*1
+    for i in range(num_train):
+        correct_class_score[i] = scores[i,y[i]]
+    correct_class_scores = np.broadcast_to(correct_class_score, scores.shape) # N*C
+
+    margin = scores - correct_class_scores + 1
+    
+    # turn non positive margin to 0
+    margin[margin <= 0] = 0
+
+    #turn correct label margin to 0 
+    for i in range(num_train):
+        margin[i, y[i]] = 0
+
+    loss = np.sum(margin) /num_train + reg*np.sum(W**2)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
