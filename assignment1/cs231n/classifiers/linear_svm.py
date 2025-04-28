@@ -38,6 +38,11 @@ def svm_loss_naive(W, X, y, reg):
             if margin > 0:
                 loss += margin
 
+                # add grad from hinge loss
+                dW[:,y[i]] += X[i]
+                dW[:,j] += -X[i]
+
+
     # Right now the loss is a sum over all training examples, but we want it
     # to be an average instead so we divide by num_train.
     loss /= num_train
@@ -54,8 +59,9 @@ def svm_loss_naive(W, X, y, reg):
     # code above to compute the gradient.                                       #
     #############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-    pass
+    
+    # add reguzariation grad
+    dW += 2*reg*W
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
