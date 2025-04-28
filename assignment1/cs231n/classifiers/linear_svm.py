@@ -95,6 +95,7 @@ def svm_loss_vectorized(W, X, y, reg):
 
     scores = X.dot(W) # N*C
     correct_class_score= np.zeros((num_train,1)) # N*1
+
     for i in range(num_train):
         correct_class_score[i] = scores[i,y[i]]
     correct_class_scores = np.broadcast_to(correct_class_score, scores.shape) # N*C
@@ -104,7 +105,7 @@ def svm_loss_vectorized(W, X, y, reg):
     # turn non positive margin to 0
     margin[margin <= 0] = 0
 
-    #turn correct label margin to 0 
+    # turn correct label margin to 0 
     for i in range(num_train):
         margin[i, y[i]] = 0
 
@@ -123,7 +124,29 @@ def svm_loss_vectorized(W, X, y, reg):
     #############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    # skip vectorized svm grad implementation
+    num_classes = W.shape[1]
+    for i in range(num_train):
+        scores = X[i].dot(W)
+        correct_class_score = scores[y[i]]
+        for j in range(num_classes):
+            if j == y[i]:
+                continue
+            margin = scores[j] - correct_class_score + 1  # note delta = 1
+            if margin > 0:
+                loss += margin
+                # add grad from hinge loss
+                # dW[:,y[i]] += X[i]
+                # dW[:,j] += -X[i]
+                # invert the sign
+                dW[:,y[i]] -= X[i]
+                dW[:,j] += X[i]
+    
+    # devide by num_train
+    dW /= num_train
+
+    # add reguzariation grad
+    dW += 2*reg*W
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
