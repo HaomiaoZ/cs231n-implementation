@@ -778,7 +778,34 @@ def svm_loss(x, y):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    # modified non vectorized solution
+
+    dx = np.zeros_like(x)  # initialize the gradient as zero
+    loss = 0.0
+
+    num_classes = x.shape[1]
+    num_train = x.shape[0]
+
+    # compute loss adn grad wrt score
+    for i in range(num_train):
+        scores = x[i]
+
+        for j in range(num_classes):
+            if j == y[i]:
+                continue
+            margin = scores[j] - scores[y[i]] + 1  # note delta = 1
+            if margin > 0:
+                loss += margin
+                dx[i, y[i]] -= 1.0
+                dx[i, j] += 1.0
+
+    # Right now the loss is a sum over all training examples, but we want it
+    # to be an average instead so we divide by num_train.
+    loss /= num_train
+    
+    # devide by num_train
+    dx /= num_train
+
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -808,7 +835,28 @@ def softmax_loss(x, y):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    # modified non vectorized version
+
+    dx = np.zeros_like(x)
+    loss = 0.0
+
+    num_train = x.shape[0]  #N
+    num_class = x.shape[1]  #C
+
+    # compute loss adn grad wrt score
+    for i in range(num_train):
+        scores = x[i]
+        loss += -np.log(np.exp(scores[y[i]])/np.sum(np.exp(scores)))
+        dx[i] += np.exp(scores)/np.sum(np.exp(scores))
+
+        for j in range(num_class):
+          if j == y[i]:
+              dx[i,j] -= 1.0
+
+    loss /= num_train
+    
+    dx /= num_train
+    
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
