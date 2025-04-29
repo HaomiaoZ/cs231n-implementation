@@ -55,7 +55,12 @@ class TwoLayerNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        self.params['W1'] = np.random.randn(input_dim, hidden_dim)*weight_scale # standard normal distribution scaled by weight scale
+        self.params['b1'] = np.zeros_like(input_dim)
+
+        self.params['W2'] = np.random.randn(hidden_dim, num_classes)*weight_scale
+        self.params['b2'] = np.zeros_like(hidden_dim)
+
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -88,7 +93,15 @@ class TwoLayerNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        # affine - relu - affine - softmax
+
+        # affine - relu
+        affine_relu_out, affine_relu_cache = affine_relu_forward(X, self.params['W1'], self.params['b1'])
+
+        # affine
+        affine_2_out, affine_2_cache = affine_forward(affine_relu_out, self.params['W2'], self.params['b2'])
+
+        scores = affine_2_out
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -112,7 +125,28 @@ class TwoLayerNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        # add regularization to softmax loss
+        loss, dx= softmax_loss(scores, y) 
+        loss += 0.5*self.reg*np.sum(self.params['W1']*self.params['W1']) #* is elementwise multiplication
+        loss += 0.5*self.reg*np.sum(self.params['W2']*self.params['W2'])
+
+        # backward through 2nd layer
+        dx, dw, db  = affine_backward(dx, affine_2_cache)
+
+        # add regularization
+        dw += self.reg*self.params['W2']
+
+        grads['W2'] = dw
+        grads['b2'] = db
+
+        #backward through 1st layer, dx update through the entire process
+        dx, dw, db = affine_relu_backward(dx, affine_relu_cache)
+
+        dw += self.reg*self.params['W1']
+
+        grads['W1'] = dw
+        grads['b1'] = db
+
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
