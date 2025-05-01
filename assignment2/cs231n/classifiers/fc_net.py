@@ -74,7 +74,14 @@ class FullyConnectedNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        # {affine - [batch/layer norm] - relu - [dropout]} x (L - 1) - affine - softmax
+        int_out_size = [input_dim]+hidden_dims+[num_classes] # convert number to list, and concatenate list using +
+
+        # initialize layer weight, modified from a1. Ignore batchnorm and dropout for now
+        for i in range(self.num_layers):
+            self.params['W'+str(i+1)] = np.random.randn(int_out_size[i], int_out_size[i+1])*weight_scale
+            self.params['b'+str(i+1)] = np.zeros(int_out_size[i+1])
+        
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -147,8 +154,25 @@ class FullyConnectedNet(object):
         # layer, etc.                                                              #
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+        
+        # modified from A1 two layer net
+        cache = {}
+        
+        # ignore batchnorm and dropout for now
+        layer_in = X
+        for i in range(self.num_layers):
+            layer_out, layer_out_cache = affine_forward(layer_in, self.params['W'+str(i+1)], self.params['b'+str(i+1)])
+            cache['affine'+str(i+1)] = layer_out_cache
 
-        pass
+            if i == self.num_layers-1:
+                scores = layer_out
+                break
+            else:
+                layer_in = layer_out
+                layer_out, layer_out_cache = relu_forward(layer_in)
+                cache['relu'+str(i+1)] = layer_out_cache
+                layer_in = layer_out
+
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -175,7 +199,37 @@ class FullyConnectedNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        # modified from A1 two layer net
+        loss, dx = softmax_loss(scores, y)
+
+        # add regularization to loss
+        for i in reversed(range(self.num_layers)):
+            loss += 0.5*self.reg*np.sum(self.params['W'+str(i+1)]*self.params['W'+str(i+1)]) #* is elementwise multiplication
+        
+        # backward pass through reversed i
+        dout = dx
+        for i in reversed(range(self.num_layers)):
+            
+            # if not the last layer
+            if i != self.num_layers-1:
+                # relu backward
+                dx = relu_backward(dout, cache['relu'+str(i+1)])
+                dout = dx
+            
+            # affine backward
+            dx, dw, db  = affine_backward(dout, cache['affine'+str(i+1)])
+            
+            # add regularization
+            dw += self.reg*self.params['W'+str(i+1)]
+
+            # store grads
+            grads['W'+str(i+1)] = dw
+            grads['b'+str(i+1)] = db
+
+            # downstream becomes upstream
+            dout = dx
+            
+
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
