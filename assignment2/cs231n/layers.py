@@ -25,7 +25,7 @@ def affine_forward(x, w, b):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    out = np.reshape(x, (x.shape[0], -1)).dot(w)+b
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -57,7 +57,12 @@ def affine_backward(dout, cache):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    x_reshaped = np.reshape(x, (x.shape[0], -1)) # N*D
+
+    # sum not mean for db
+    db = np.sum(dout, axis = 0)
+    dw = x_reshaped.T @ dout
+    dx = np.reshape(dout @ w.T, x.shape)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -82,7 +87,7 @@ def relu_forward(x):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    out = np.maximum(0, x)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -108,7 +113,8 @@ def relu_backward(dout, cache):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    dx = dout
+    dx[x<0] = 0
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -137,7 +143,27 @@ def softmax_loss(x, y):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    # modified non vectorized version
+
+    dx = np.zeros_like(x)
+    loss = 0.0
+
+    num_train = x.shape[0]  #N
+    num_class = x.shape[1]  #C
+
+    # compute loss and grad wrt score
+    for i in range(num_train):
+        scores = x[i]
+        loss += -np.log(np.exp(scores[y[i]])/np.sum(np.exp(scores)))
+        dx[i] += np.exp(scores)/np.sum(np.exp(scores))
+
+        for j in range(num_class):
+          if j == y[i]:
+              dx[i,j] -= 1.0
+
+    loss /= num_train
+    
+    dx /= num_train
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
