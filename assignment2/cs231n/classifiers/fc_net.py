@@ -77,11 +77,16 @@ class FullyConnectedNet(object):
         # {affine - [batch/layer norm] - relu - [dropout]} x (L - 1) - affine - softmax
         int_out_size = [input_dim]+hidden_dims+[num_classes] # convert number to list, and concatenate list using +
 
-        # initialize layer weight, modified from a1. Ignore batchnorm and dropout for now
+        # initialize layer weight, modified from a1. Ignore dropout for now
         for i in range(self.num_layers):
             self.params['W'+str(i+1)] = np.random.randn(int_out_size[i], int_out_size[i+1])*weight_scale
             self.params['b'+str(i+1)] = np.zeros(int_out_size[i+1])
         
+        if self.normalization == "batchnorm":
+            # batchnorm for L-1 layer
+            for i in range(self.num_layers-1):
+                self.params['gamma'+str(i+1)] = np.ones(int_out_size[i+1])
+                self.params['beta'+str(i+1)] = np.zeros(int_out_size[i+1])
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -163,12 +168,18 @@ class FullyConnectedNet(object):
         for i in range(self.num_layers):
             layer_out, layer_out_cache = affine_forward(layer_in, self.params['W'+str(i+1)], self.params['b'+str(i+1)])
             cache['affine'+str(i+1)] = layer_out_cache
+            layer_in = layer_out
 
             if i == self.num_layers-1:
                 scores = layer_out
                 break
             else:
-                layer_in = layer_out
+                # batchnorm
+                if self.normalization == "batchnorm":
+                    layer_out, layer_out_cache = batchnorm_forward(layer_in, self.params['gamma'+str(i+1)], self.params['beta'+str(i+1)], self.bn_params[i])
+                    cache['batchnorm'+str(i+1)] = layer_out_cache
+                    layer_in = layer_out
+                # relu
                 layer_out, layer_out_cache = relu_forward(layer_in)
                 cache['relu'+str(i+1)] = layer_out_cache
                 layer_in = layer_out
@@ -214,7 +225,20 @@ class FullyConnectedNet(object):
             if i != self.num_layers-1:
                 # relu backward
                 dx = relu_backward(dout, cache['relu'+str(i+1)])
+
+                # downstream becomes upstream
                 dout = dx
+
+                if self.normalization =="batchnorm":
+                    # batchnorm backward
+                    dx, dgamma, dbeta = batchnorm_backward(dout, cache['batchnorm'+str(i+1)])
+                    
+                    # store grads
+                    grads['gamma'+str(i+1)] = dgamma
+                    grads['beta'+str(i+1)] = dbeta
+
+                    # downstream becomes upstream
+                    dout = dx
             
             # affine backward
             dx, dw, db  = affine_backward(dout, cache['affine'+str(i+1)])
