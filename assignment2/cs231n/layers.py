@@ -422,8 +422,19 @@ def layernorm_forward(x, gamma, beta, ln_param):
     # the batch norm code and leave it almost unchanged?                      #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    
+    N,D = x.shape
 
-    pass
+    # Modified Batch normalization based on slides
+    sample_mean = np.mean(x, axis = 1) #length N
+    sample_var = np.var(x, axis = 1)
+    # a[:, np.newaxis] make row vector to column vector, then broadcast
+    norm_x = (x-np.broadcast_to(sample_mean[:,np.newaxis],x.shape))/np.sqrt(np.broadcast_to(sample_var[:,np.newaxis],x.shape)+eps)
+    y = norm_x*gamma + beta
+
+    # store variable
+    out  = y
+    cache = (x, norm_x, sample_mean, sample_var, gamma, beta, eps)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -456,8 +467,28 @@ def layernorm_backward(dout, cache):
     # still apply!                                                            #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    
+    x, norm_x, sample_mean, sample_var, gamma, beta, eps= cache
 
-    pass
+    # modify derivatives in section 3 in the batchnorm paper
+    # figure out the implecit broadcasting then everything will be solved (not quite, more changes than needed for backward pass)
+    # inspired by https://github.com/mantasu/cs231n/blob/master/assignment2/cs231n/layers.py, transpose dout and work everything with D*N, then transform back
+    # if batchnorm implemented properly, can just call batchnorm
+    x =x.T
+    norm_x =norm_x.T
+    dout = dout.T
+    gamma = np.broadcast_to(gamma[:,np.newaxis],x.shape)
+    
+    N, D = x.shape
+
+    dnorm_x = dout*gamma # N*D
+    dsample_var = np.sum(((x-sample_mean)*-0.5*np.pow(sample_var+eps,-1.5))*dnorm_x, axis = 0) # elementwise multiplication
+    dsample_mean = np.sum(dnorm_x*-1/np.sqrt(sample_var+eps), axis = 0) + dsample_var* np.mean(-2*(x-sample_mean),axis=0)
+    dx = dnorm_x*1/np.sqrt(sample_var+eps)+ dsample_var*2*(x-sample_mean)/N+ dsample_mean/N
+    dgamma = np.sum(norm_x*dout, axis = 1) # elementwise multiplication (from axis = 0 to axis = 1)
+    dbeta = np.sum(dout, axis = 1 )# (from axis = 0 in BN to axis = 1 in LN)
+
+    dx = dx.T
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
