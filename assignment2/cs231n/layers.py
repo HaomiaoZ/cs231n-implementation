@@ -625,8 +625,37 @@ def conv_forward_naive(x, w, b, conv_param):
     # Hint: you can use the function np.pad for padding.                      #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    N, C, H, W = x.shape
+    F, C, HH, WW =w.shape
 
-    pass
+    pad = conv_param["pad"]
+    stride  = conv_param["stride"]
+
+    H_out = int(1 + (H + 2 * pad - HH) / stride)
+    W_out = int(1 + (W + 2 * pad - WW) / stride)
+    
+    out = np.zeros((N, F, H_out, W_out))
+
+    for n in range(N):
+        temp_img = x[n] # C*H*W
+
+        # pad img
+        temp_pad = np.zeros((C, H, pad))
+        temp_img = np.concatenate((temp_pad, temp_img, temp_pad), axis = 2) # pad width (W, left and right)
+        
+        temp_pad = np.zeros((C, pad, W+2*pad))
+        temp_img = np.concatenate((temp_pad, temp_img, temp_pad), axis = 1) # pad height (h, up and bottom)
+
+        for f in range(F):
+              
+              temp_filter_weight = w[f] # C*HH*WW
+              temp_bias = b[f] # dim 1
+              
+              # calculate each output value
+              for i in range(H_out):
+                  for j in range(W_out):
+                    out[n][f][i][j] = np.sum(temp_img[:, i*stride:i*stride+HH, j*stride:j*stride+WW]*temp_filter_weight) + temp_bias # sum(elementwise multiplication) + bias
+                      
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
