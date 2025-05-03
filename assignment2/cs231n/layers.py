@@ -682,8 +682,39 @@ def conv_backward_naive(dout, cache):
     # TODO: Implement the convolutional backward pass.                        #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    x, w, b, conv_param =cache
 
-    pass
+    N, C, H, W = x.shape
+    F, C, HH, WW =w.shape
+    N, F, H_out, W_out = dout.shape
+
+    dx = np.zeros(x.shape)
+    dw = np.zeros(w.shape)
+    
+    pad = conv_param["pad"]
+    stride  = conv_param["stride"]
+
+    
+    # use pad to pervent out of bound
+    dx_pad = np.zeros((N, C, H+2*pad, W+2*pad))
+    for n in range(N):
+        temp_img = x[n] # C*H*W
+
+        # pad img to prevent out of bound calculation
+        temp_pad = np.zeros((C, H, pad))
+        temp_img = np.concatenate((temp_pad, temp_img, temp_pad), axis = 2) # pad width (W, left and right)
+        
+        temp_pad = np.zeros((C, pad, W+2*pad))
+        temp_img = np.concatenate((temp_pad, temp_img, temp_pad), axis = 1) # pad height (h, up and bottom)
+
+        for f in range(F):
+          for i in range(H_out):
+              for j in range(W_out):
+                  dx_pad[n, :, i*stride:i*stride+HH, j*stride:j*stride+WW] += dout[n, f, i, j]*w[f] # constant * (C, HH, WW)
+                  dw[f] += dout[n, f, i, j]*temp_img[:,i*stride:i*stride+HH, j*stride:j*stride+WW] #constant * (C, HH, WW) 
+                  
+    dx =dx_pad[:, :, pad:-pad, pad:-pad] #extract gradient to unpadded input
+    db =np.sum(dout, (0, 2, 3)) # (F,), sum over other axes
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
