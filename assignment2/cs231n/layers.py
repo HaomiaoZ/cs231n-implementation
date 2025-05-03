@@ -853,7 +853,15 @@ def spatial_batchnorm_forward(x, gamma, beta, bn_param):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    # x(N,C,H,W) -> (N,D), gamma (C,)->(D, ), beta (C,)->(D,) D = C*H*W
+    N,C,H,W = x.shape
+    gamma = np.broadcast_to(gamma.reshape((C,1)),(C,H*W))
+    gamma =gamma.reshape(-1)
+    beta = np.broadcast_to(beta.reshape((C,1)),(C,H*W))
+    beta = beta.reshape(-1)
+    out, cache = batchnorm_forward(x.reshape((N,-1)), gamma, beta, bn_param)
+    out = out.reshape(x.shape)
+    #(N,D)->(N,C,H,W)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -886,7 +894,11 @@ def spatial_batchnorm_backward(dout, cache):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    N, C, H, W = dout.shape
+    dx, dgamma, dbeta = batchnorm_backward(dout.reshape((N,-1)), cache) # N,C,H,W -> N,D
+    dx = dx.reshape(dout.shape) #N,D -> N,C,H,W
+    dgamma = np.sum(dgamma.reshape((C,-1)), axis = 1) #D,-> C,
+    dbeta = np.sum(dbeta.reshape((C,-1)), axis = 1) #D,-> C,
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
