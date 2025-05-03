@@ -148,17 +148,19 @@ def softmax_loss(x, y):
     dx = np.zeros_like(x)
     loss = 0.0
 
+    eps =1e-8
+
     num_train = x.shape[0]  #N
     num_class = x.shape[1]  #C
 
     # compute loss and grad wrt score
     # followed https://github.com/mantasu/cs231n/blob/master/assignment2/cs231n/layers.py add numerically stable component by substracting the scores.max
     x = x - x.max(axis=1, keepdims=True)
-    
+
     for i in range(num_train):
         scores = x[i]
-        loss += -np.log(np.exp(scores[y[i]])/np.sum(np.exp(scores)))
-        dx[i] += np.exp(scores)/np.sum(np.exp(scores))
+        loss += -np.log(np.exp(scores[y[i]])/(np.sum(np.exp(scores))+eps))
+        dx[i] += np.exp(scores)/(np.sum(np.exp(scores)+eps))
 
         for j in range(num_class):
           if j == y[i]:
