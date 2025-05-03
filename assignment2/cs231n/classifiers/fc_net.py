@@ -183,6 +183,12 @@ class FullyConnectedNet(object):
                 layer_out, layer_out_cache = relu_forward(layer_in)
                 cache['relu'+str(i+1)] = layer_out_cache
                 layer_in = layer_out
+                
+                # dropout
+                if self.use_dropout:
+                    layer_out,layer_out_cache = dropout_forward(layer_in, self.dropout_param)
+                    cache['dropout'+str(i+1)] =layer_out_cache
+                    layer_in = layer_out
 
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
@@ -223,6 +229,14 @@ class FullyConnectedNet(object):
             
             # if not the last layer
             if i != self.num_layers-1:
+
+                if self.use_dropout:
+                    # dropout backward
+                    dx = dropout_backward(dout, cache['dropout'+str(i+1)])
+                    
+                    # downstream becomes upstream
+                    dout =dx
+
                 # relu backward
                 dx = relu_backward(dout, cache['relu'+str(i+1)])
 
