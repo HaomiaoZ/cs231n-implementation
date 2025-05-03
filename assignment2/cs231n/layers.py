@@ -748,8 +748,20 @@ def max_pool_forward_naive(x, pool_param):
     # TODO: Implement the max-pooling forward pass                            #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    N, C, H, W =x.shape
 
-    pass
+    pool_height = pool_param["pool_height"]
+    pool_width = pool_param["pool_width"]
+    stride = pool_param["stride"]
+    H_out = int(1 + (H - pool_height) / stride)
+    W_out = int(1 + (W - pool_width) / stride)
+
+    out = np.zeros((N, C, H_out, W_out))
+    for i in range(H_out):
+        for j in range(W_out):
+            
+            patch = np.reshape(x[:, :, i*pool_height:i*pool_height+stride, j*pool_width: j*pool_width+stride], (N, C, stride*stride))
+            out[:, :, i, j] = np.max (patch, axis = 2)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -774,8 +786,33 @@ def max_pool_backward_naive(dout, cache):
     # TODO: Implement the max-pooling backward pass                           #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    
+    x, pool_param = cache
+    
+    N, C, H, W =x.shape
+    N, C, H_out, W_out =dout.shape
 
-    pass
+    pool_height = pool_param["pool_height"]
+    pool_width = pool_param["pool_width"]
+    stride = pool_param["stride"]
+    # gradient router, need to find the location of the max
+
+    dx = np.zeros(x.shape)
+
+    for i in range(H_out):
+        for j in range(W_out):
+            # assume reshape use the same order back and forth
+            patch = np.reshape(x[:, :, i*pool_height:i*pool_height+stride, j*pool_width: j*pool_width+stride], (N, C, stride*stride))
+            ind = np.argmax(patch, axis = 2) # find indices
+            
+            eye_mat = np.eye(stride*stride)
+            for n in range(N):
+                for c in range(C):
+                    one_hot_vec = eye_mat[ind[n,c]]
+                    mask =np.reshape(one_hot_vec,(stride, stride))
+                    dx[n,c,i*pool_height:i*pool_height+stride, j*pool_width: j*pool_width+stride] =mask*dout[n,c,i,j]
+                    
+
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
