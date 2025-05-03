@@ -82,7 +82,7 @@ class FullyConnectedNet(object):
             self.params['W'+str(i+1)] = np.random.randn(int_out_size[i], int_out_size[i+1])*weight_scale
             self.params['b'+str(i+1)] = np.zeros(int_out_size[i+1])
         
-        if self.normalization == "batchnorm":
+        if self.normalization == "batchnorm" or self.normalization == "layernorm" :
             # batchnorm for L-1 layer
             for i in range(self.num_layers-1):
                 self.params['gamma'+str(i+1)] = np.ones(int_out_size[i+1])
@@ -179,6 +179,12 @@ class FullyConnectedNet(object):
                     layer_out, layer_out_cache = batchnorm_forward(layer_in, self.params['gamma'+str(i+1)], self.params['beta'+str(i+1)], self.bn_params[i])
                     cache['batchnorm'+str(i+1)] = layer_out_cache
                     layer_in = layer_out
+                # layernorm
+                elif self.normalization == "layernorm":
+                    layer_out, layer_out_cache = layernorm_forward(layer_in, self.params['gamma'+str(i+1)], self.params['beta'+str(i+1)], self.bn_params[i])
+                    cache['layernorm'+str(i+1)] = layer_out_cache
+                    layer_in = layer_out
+
                 # relu
                 layer_out, layer_out_cache = relu_forward(layer_in)
                 cache['relu'+str(i+1)] = layer_out_cache
@@ -246,6 +252,15 @@ class FullyConnectedNet(object):
                 if self.normalization =="batchnorm":
                     # batchnorm backward
                     dx, dgamma, dbeta = batchnorm_backward(dout, cache['batchnorm'+str(i+1)])
+                    
+                    # store grads
+                    grads['gamma'+str(i+1)] = dgamma
+                    grads['beta'+str(i+1)] = dbeta
+
+                    # downstream becomes upstream
+                    dout = dx
+                elif self.normalization == "layernorm":
+                    dx, dgamma, dbeta = layernorm_backward(dout, cache['layernorm'+str(i+1)])
                     
                     # store grads
                     grads['gamma'+str(i+1)] = dgamma
