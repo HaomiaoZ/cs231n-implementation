@@ -938,9 +938,25 @@ def spatial_groupnorm_forward(x, gamma, beta, G, gn_param):
     # and layer normalization!                                                #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    out = np.zeros(x.shape)
+    cache = []
+    N,C,H,W = x.shape
+    # per group, it is layernorm
+    for i in range (G):
+        x_temp = x[:,i*C//G:(i+1)*C//G, :, :].reshape((N,-1)) # extract (N, C//G, H, W) -> (N, D)
 
-    pass
+        gamma_temp = gamma[:, i*C//G:(i+1)*C//G,:,:] # extract (1, C//G, 1, 1) 
+        gamma_temp = np.broadcast_to(gamma_temp,(1,C//G,H,W)).reshape(-1) # broadcast to (1, C//G, H, W)->(D,)
 
+        beta_temp = beta[:, i*C//G:(i+1)*C//G,:,:] # extract (1, C//G, 1, 1) 
+        beta_temp = np.broadcast_to(beta_temp,(1,C//G,H,W)).reshape(-1) # broadcast to (1, C//G, H, W)->(D,)
+
+        out_temp, cache_temp = layernorm_forward(x_temp, gamma_temp, beta_temp, gn_param)
+
+        out_temp = np.reshape(out_temp,(N,C//G, H, W)) # (N, D) -> (N, C//G, H, W) 
+        
+        out[:,i*C//G:(i+1)*C//G, :, :] = out_temp
+        cache.append(cache_temp)
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
     #                             END OF YOUR CODE                            #
@@ -967,8 +983,20 @@ def spatial_groupnorm_backward(dout, cache):
     # This will be extremely similar to the layer norm implementation.        #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    G = len(cache)
+    N, C, H, W = dout.shape
+    dx = np.zeros(dout.shape)
+    dgamma = np.zeros((1, C, 1, 1))
+    dbeta = np.zeros((1, C, 1, 1))
 
-    pass
+    for i in range(G):
+        cache_temp = cache[i]
+        dout_temp = dout[:,i*C//G:(i+1)*C//G, :, :].reshape((N,-1)) # extract (N, C//G, H, W) -> (N, D)
+        dx_temp, dgamma_temp, dbeta_temp = layernorm_backward(dout_temp, cache_temp)
+
+        dx[:,i*C//G:(i+1)*C//G, :, :] = dx_temp.reshape((N, C//G, H, W)) # (N,D) -> (N, C//G, H, W)
+        dgamma[:,i*C//G:(i+1)*C//G, :, :] = np.sum(dgamma_temp.reshape((C//G,-1)), axis=1).reshape((C//G,1,1)) # reshape to C//G, H*W, sum up, then reshape from (C//G,) to(C//G, 1, 1)
+        dbeta[:,i*C//G:(i+1)*C//G, :, :] = np.sum(dbeta_temp.reshape((C//G,-1)), axis=1).reshape((C//G,1,1))
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
