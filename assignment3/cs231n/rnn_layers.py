@@ -254,8 +254,15 @@ def word_embedding_forward(x, W):
     # HINT: This can be done in one line using NumPy's array indexing.           #
     ##############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    N,T =x.shape
+    V,D = W.shape
 
-    pass
+    out = np.zeros((N,T,D))
+    for i in range(N):
+        for j in range(T):
+            out[i,j,:] = W[x[i,j]]
+    
+    cache = (x, W)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
@@ -288,9 +295,17 @@ def word_embedding_backward(dout, cache):
     # HINT: Look up the function np.add.at                                       #
     ##############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    x, W = cache
 
-    pass
+    N,T,D = dout.shape
+    V, D = W.shape
+    dW =np.zeros((V,D))
 
+    for i in range (N):
+        for j in range(T):
+            np.add.at(dW, x[i,j], dout[i,j]) 
+
+    
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
     #                               END OF YOUR CODE                             #
