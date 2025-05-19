@@ -147,7 +147,27 @@ def rnn_forward(x, h0, Wx, Wh, b):
     ##############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    N,T,D = np.shape(x)
+    _, H = np.shape(h0)
+    
+    prev_h = h0
+    h = np.zeros((T, N, H))
+    x_temp = np.swapaxes(x, 0, 1) #(N,T,D) -> (T,N,D)
+    cache =[]
+
+    for i in range(T):
+        # step
+        
+        next_h, cache_temp = rnn_step_forward(x_temp[i], prev_h, Wx, Wh, b)
+        prev_h = next_h
+
+        # store variable in h and cache
+        # stack to (T, N, D) then swap axes
+        h[i] = next_h
+        cache.append(cache_temp)
+        
+    
+    h = np.swapaxes(h, 0, 1) #(T,N,D) -> (N,T,D)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
@@ -181,8 +201,28 @@ def rnn_backward(dh, cache):
     # defined above. You can use a for loop to help compute the backward pass.   #
     ##############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    
+    N, T, H = np.shape(dh)
+    (Wx, _, _, _, _, _)= cache[0] # for D
+    D,_ =np.shape(Wx)
 
-    pass
+    dh_swap = np.swapaxes(dh, 0, 1) #(N,T,H)-> (T,N,H)
+    dx = np.zeros((T,N,D))
+    dh0 = np.zeros((N,H))
+    dWx = np.zeros((D,H))
+    dWh = np.zeros((H,H))
+    db = np.zeros((H,))
+    dh_temp=dh0
+
+    for i in reversed(range(T)):
+        dx_temp, dh_temp, dWx_temp, dWh_temp, db_temp = rnn_step_backward(dh_swap[i]+dh_temp, cache[i]) # two grad flow into block, so add them (upstream grad from output + upstream grad through next timestep)
+        dx[i]=dx_temp
+        dWx+=dWx_temp
+        dWh+=dWh_temp
+        db+=db_temp
+    dh0 = dh_temp
+
+    dx = np.swapaxes(dx, 0, 1) #(T, N, D) ->(N, T, D)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
