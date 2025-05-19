@@ -148,7 +148,27 @@ class CaptioningRNN:
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        # forward
+        # affine, CNN -> h0
+        h0, cache_affine = affine_forward(features, W_proj, b_proj)
+
+        # word embedding transform
+        x, cache_embedding = word_embedding_forward(captions_in, W_embed)
+
+        # assume RNN only for now
+        out_rnn, cache_rnn = rnn_forward(x, h0, Wx, Wh, b)
+
+        # temporal affine
+        score, cache_temporal_affine = temporal_affine_forward(out_rnn, W_vocab, b_vocab)
+        
+        # temporal softmax
+        loss, dout = temporal_softmax_loss(score, captions_out, mask)
+
+        # backward
+        dout, grads["W_vocab"], grads["b_vocab"] = temporal_affine_backward(dout, cache_temporal_affine)
+        dx, dh0, grads["Wx"], grads["Wh"], grads["b"]= rnn_backward(dout, cache_rnn)
+        grads["W_embed"] = word_embedding_backward(dx, cache_embedding)
+        dx, grads["W_proj"], grads["b_proj"] = affine_backward(dh0, cache_affine)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -216,8 +236,24 @@ class CaptioningRNN:
         ###########################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        # affine, CNN -> h0
+        prev_h, _ = affine_forward(features, W_proj, b_proj)
 
+        # word embedding transform
+        # TODO : check the size of matrices, correctly index captions variable at temporal affine foward
+        words  = np.broadcast_to(self._start,(N,1))
+        for i in range(max_length):
+            x, _ = word_embedding_forward(words, W_embed) # word embedding
+            next_h, _ = rnn_step_forward(np.squeeze(x), prev_h, Wx, Wh, b) # rnn step, # squeeze (N,1,D) -> (N, D)
+            scores, _ = temporal_affine_forward(np.swapaxes(next_h[np.newaxis,:], 0, 1), W_vocab, b_vocab) #affine for score reshape (N,D)-> (1,N,D) -> (N,1,D)
+            
+            # update words and hidden state
+            words  = np.argmax(np.squeeze(scores), axis = 1) # scores (N, 1, V)
+            captions[:,i] = words
+
+            words = words[:,np.newaxis]
+            prev_h = next_h
+            
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
         #                             END OF YOUR CODE                             #
