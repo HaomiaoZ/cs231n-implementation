@@ -175,9 +175,13 @@ class MultiHeadAttention(nn.Module):
 
         # l->S, d->E from notebook to .py, T = S when self atten (Source dim = Target dim)
         # online code does get same error rate as mine implementation (for non masked version)
+        
+        # from the version generate nan to working version, two things changed:
+        # 1. attn_mask==0 rather than using attn_mask directly
+        # 2. use temp val to add intermediate steps rather than put everyhing into y calculation 
 
         H = self.n_head
-
+        
         q = self.query(query) # Q (N, S, E) XQ
         k = self.key(key) # K (N, T, E) XK
         v = self.value(value) # V (N, T, E) XV
@@ -189,12 +193,54 @@ class MultiHeadAttention(nn.Module):
         qk_norm = torch.matmul(q_reshaped, k_reshaped.swapaxes(2,3))/torch.sqrt(torch.tensor(E/H)) #(N,H,S,E/H)*(N,H,E/H,T)->(N, H, S, T)
         
         if attn_mask is not None:
-          qk_norm = torch.masked_fill(qk_norm, attn_mask, -math.inf) # -inf so after softmax it is close to 0
+          qk_norm = torch.masked_fill(qk_norm, attn_mask==0, float('-inf')) # -inf so after softmax it is close to 0, using a really small number works
 
+        temp_val = F.softmax(qk_norm, dim = 3)
 
-        y = torch.matmul(self.attn_drop(F.softmax(qk_norm, dim = 3)), v_reshaped) # (N, H, S, T)(softmax along S slice)* (N,H,T,E/H) = (N,H,S,E/H)
+        temp_val = self.attn_drop(temp_val)
+
+        y = torch.matmul(temp_val, v_reshaped) # (N, H, S, T)(softmax along S slice)* (N,H,T,E/H) = (N,H,S,E/H)
         output = self.proj(y.swapaxes(1, 2).reshape((N, S, E))) #(N, H, S, E/H) -> (N, S, H, E/H) -> (N,S,E)
         
+        '''
+        # code from csdn so that the grad are not nan
+
+        # 投影QKV
+        Q = self.query(query)
+        K = self.key(key)
+        V = self.value(value)
+
+        # 获取投影个数
+        H = self.n_head
+        # 获取投影维度
+        D = self.head_dim
+        # 矩阵分割 与 转置 这里需要结合QKV的形状来理解
+        Q = Q.reshape(N, S, H, D).transpose(1, 2)  # (N H S D)
+        K = K.reshape(N, T, H, D).transpose(1, 2)  # (N H T D)
+        V = V.reshape(N, T, H, D).transpose(1, 2)  # (N H T D)
+
+        # 矩阵乘法算权重  (N, H, S, K) * (N, H, K, T) -> N, H, S, T
+        energy = torch.matmul(Q, K.transpose(-2, -1)) / math.sqrt(D)  # (N H S T)
+
+        # 判断是否需要mask
+        if attn_mask is not None:
+            energy = energy.masked_fill(attn_mask == 0, float('-inf'))
+
+        # softmax计算
+        A = torch.softmax(energy, dim=3)  # 对第四维度进行softmax
+
+        # 使用dropout
+        A = self.attn_drop(A)
+
+        # 计算加权和  (N, H, S, T) * (N, H, T, K) -> (N, H, S, K)
+        Y = A.matmul(V)
+
+        # 再投影回去
+        Y = Y.transpose(1, 2).reshape(N, S, E)  # (N, S, E)
+        output = self.proj(Y)  # (N, S, E)
+        '''
+
+
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
