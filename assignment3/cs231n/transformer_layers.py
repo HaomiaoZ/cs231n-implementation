@@ -195,7 +195,7 @@ class MultiHeadAttention(nn.Module):
         if attn_mask is not None:
           qk_norm = torch.masked_fill(qk_norm, attn_mask==0, float('-inf')) # -inf so after softmax it is close to 0, using a really small number works
 
-        temp_val = F.softmax(qk_norm, dim = 3)
+        temp_val = F.softmax(qk_norm, dim = 3) #softmax along target dimension (along key and value dimension), so along T, which is the last dim (dim 3)
 
         temp_val = self.attn_drop(temp_val)
 

@@ -97,6 +97,8 @@ class CaptioningTransformer(nn.Module):
 
         #2)
         tgt_mask = torch.tril(torch.ones((T, T),dtype=torch.bool)) # (T,T)
+        # upper triangler so that previous source won't affect future timestep ( first row only attend to first element, second row attend to first and second element etc)
+        #[1,0,0;1,1,0;1,1,1]
 
         #3)
         output  =  self.transformer(captions_embed_encode, features_proj, tgt_mask)
