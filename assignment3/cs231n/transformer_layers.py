@@ -165,7 +165,22 @@ class MultiHeadAttention(nn.Module):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        # l->S, d->E from notebook to .py, T = S when self atten (Source dim = Target dim)
+        
+        H = self.n_head
+
+        q = self.query(query) # Q (N, S, E) XQ
+        k = self.key(key) # K (N, T, E) XK
+        v = self.value(value) # V (N, T, E) XV
+
+        q_reshaped = torch.reshape(q, (N, S, H, E//H)).swapaxes(1,2) # (N, S, E) ->(N, S, H, E/H)->(N, H, S, E/H)
+        k_reshaped = torch.reshape(k, (N, T, H, E//H)).swapaxes(1,2) # (N, T, E) ->(N, T, H, E/H)->(N, H, T, E/H)
+        v_reshaped = torch.reshape(v, (N, T, H, E//H)).swapaxes(1,2) # (N, T, E) ->(N, T, H, E/H)->(N, H, T, E/H)
+        
+        qk_norm = torch.matmul(q_reshaped, k_reshaped.swapaxes(2,3))/torch.sqrt(torch.tensor(E/H)) #(N,H,S,E/H)*(N,H,E/H,T)->(N, H, S, T)
+        y = torch.matmul(self.attn_drop(F.softmax(qk_norm, dim = 2)), v_reshaped) # (N, H, S, T)(softmax along S slice)* (N,H,T,E/H) = (N,H,S,E/H)
+        output = self.proj(y.swapaxes(1, 2).reshape((N, S, E))) #(N, H, S, E/H) -> (N, S, H, E/H) -> (N,S,E)
+        
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
