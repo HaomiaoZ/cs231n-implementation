@@ -219,8 +219,21 @@ def build_dc_classifier(batch_size):
     # HINT: nn.Sequential might be helpful.                                      #
     ##############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-    pass
+    hidden_dim_1 = 32
+    hidden_dim_2 = 64
+    model = nn.Sequential(
+        nn.Conv2d(1, hidden_dim_1, kernel_size=5, stride= 1),
+        nn.LeakyReLU(negative_slope= 0.01),
+        nn.MaxPool2d(kernel_size=2,stride=2),
+        nn.Conv2d(hidden_dim_1,hidden_dim_2,kernel_size=5, stride=1),
+        nn.LeakyReLU(negative_slope=0.01),
+        nn.MaxPool2d(kernel_size=2, stride=2),
+        Flatten(),
+        nn.Linear(4*4*hidden_dim_2,4*4*hidden_dim_2),
+        nn.LeakyReLU(negative_slope=0.01),
+        nn.Linear(4*4*hidden_dim_2,1)
+    )
+    return model
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
@@ -241,7 +254,23 @@ def build_dc_generator(noise_dim=NOISE_DIM):
     ##############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    model = nn.Sequential(
+        nn.Linear(noise_dim, 1024),
+        nn.ReLU(),
+        nn.BatchNorm1d(1024),
+        nn.Linear(1024,7*7*128),
+        nn.ReLU(),
+        nn.BatchNorm1d(7*7*128),
+        Unflatten(),
+        nn.ConvTranspose2d(128, 64, 4, 2, padding=1),
+        nn.ReLU(),
+        nn.BatchNorm2d(64),
+        nn.ConvTranspose2d(64, 1, 4, 2, padding=1),
+        nn.Tanh(),
+        Flatten()
+        )
+
+    return model
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
