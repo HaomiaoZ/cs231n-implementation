@@ -122,8 +122,9 @@ def discriminator_loss(logits_real, logits_fake):
     """
     loss = None
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-    pass
+    zero_labels = torch.zeros(logits_fake.shape[0]).type(torch.cuda.FloatTensor) # cuda floatTensor send tensor to cuda
+    one_labels  = torch.ones(logits_real.shape[0]).type(torch.cuda.FloatTensor)
+    loss = bce_loss(logits_real, one_labels) + bce_loss(logits_fake, zero_labels) # trick to use one part of the bce loss
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     return loss
@@ -140,8 +141,10 @@ def generator_loss(logits_fake):
     """
     loss = None
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-    pass
+    # use bce loss to avoid unstablity
+    N = logits_fake.shape[0]
+    one_labels = torch.ones(N).type(torch.cuda.FloatTensor)
+    loss = bce_loss(logits_fake, one_labels) #bce(s, y) = -y*log(s)-(1-y) * log(1-s), y =1 for all then bce(s,y) = -log(s) y =0 then bce(s,y) = -log(1-s)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     return loss
@@ -160,7 +163,7 @@ def get_optimizer(model):
     optimizer = None
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    optimizer = optim.Adam(lr=1e-3, betas=(0.5, 0.999))
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     return optimizer
