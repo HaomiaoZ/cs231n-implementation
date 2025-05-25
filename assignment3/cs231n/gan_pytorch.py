@@ -30,7 +30,7 @@ def sample_noise(batch_size, dim, seed=None):
 
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    return (torch.rand(batch_size,dim)*2)-1
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -50,8 +50,13 @@ def discriminator(seed=None):
     # HINT: nn.Sequential might be helpful. You'll start by calling Flatten().   #
     ##############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-    pass
+    in_dim =784
+    hidden_dim = 256
+    model = nn.Sequential(nn.Linear(in_dim, hidden_dim, bias =True),
+                  nn.LeakyReLU(negative_slope = 0.01),
+                  nn.Linear(hidden_dim, hidden_dim, bias =True),
+                  nn.LeakyReLU(negative_slope = 0.01),
+                  nn.Linear(hidden_dim, 1, bias =True)) # can ignore bias and negative slop since they are default parameters
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
@@ -75,8 +80,14 @@ def generator(noise_dim=NOISE_DIM, seed=None):
     # HINT: nn.Sequential might be helpful.                                      #
     ##############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-    pass
+    hidden_dim_1 = 1024
+    hidden_dim_2 = 784
+    model = nn.Sequential(nn.Linear(noise_dim, hidden_dim_1),
+                          nn.ReLU(),
+                          nn.Linear(hidden_dim_1, hidden_dim_1),
+                          nn.ReLU(),
+                          nn.Linear(hidden_dim_1,hidden_dim_2),
+                          nn.Tanh())
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
