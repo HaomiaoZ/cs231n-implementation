@@ -52,11 +52,13 @@ def discriminator(seed=None):
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     in_dim =784
     hidden_dim = 256
-    model = nn.Sequential(nn.Linear(in_dim, hidden_dim, bias =True),
-                  nn.LeakyReLU(negative_slope = 0.01),
-                  nn.Linear(hidden_dim, hidden_dim, bias =True),
-                  nn.LeakyReLU(negative_slope = 0.01),
-                  nn.Linear(hidden_dim, 1, bias =True)) # can ignore bias and negative slop since they are default parameters
+    model = nn.Sequential(
+                Flatten(),
+                nn.Linear(in_dim, hidden_dim, bias =True),
+                nn.LeakyReLU(negative_slope = 0.01),
+                nn.Linear(hidden_dim, hidden_dim, bias =True),
+                nn.LeakyReLU(negative_slope = 0.01),
+                nn.Linear(hidden_dim, 1, bias =True)) # can ignore bias and negative slop since they are default parameters
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
@@ -122,8 +124,8 @@ def discriminator_loss(logits_real, logits_fake):
     """
     loss = None
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-    zero_labels = torch.zeros(logits_fake.shape[0]).type(torch.cuda.FloatTensor) # cuda floatTensor send tensor to cuda
-    one_labels  = torch.ones(logits_real.shape[0]).type(torch.cuda.FloatTensor)
+    zero_labels = torch.zeros(logits_fake.shape[0]).type(dtype) # cuda floatTensor send tensor to cuda
+    one_labels  = torch.ones(logits_real.shape[0]).type(dtype)
     loss = bce_loss(logits_real, one_labels) + bce_loss(logits_fake, zero_labels) # trick to use one part of the bce loss
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
@@ -143,7 +145,7 @@ def generator_loss(logits_fake):
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     # use bce loss to avoid unstablity
     N = logits_fake.shape[0]
-    one_labels = torch.ones(N).type(torch.cuda.FloatTensor)
+    one_labels = torch.ones(N).type(dtype)
     loss = bce_loss(logits_fake, one_labels) #bce(s, y) = -y*log(s)-(1-y) * log(1-s), y =1 for all then bce(s,y) = -log(s) y =0 then bce(s,y) = -log(1-s)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
@@ -163,7 +165,7 @@ def get_optimizer(model):
     optimizer = None
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    optimizer = optim.Adam(lr=1e-3, betas=(0.5, 0.999))
+    optimizer = optim.Adam(params = model.parameters(), lr=1e-3, betas=(0.5, 0.999))
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     return optimizer
