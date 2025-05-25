@@ -163,7 +163,7 @@ def simclr_loss_vectorized(out_left, out_right, tau, device='cuda'):
     
     # Compute similarity matrix between all pairs of augmented examples in the batch.
     sim_matrix = compute_sim_matrix(out)  # [2*N, 2*N]
-    
+
     ##############################################################################
     # TODO: Start of your code. Follow the hints.                                #
     ##############################################################################
@@ -189,7 +189,7 @@ def simclr_loss_vectorized(out_left, out_right, tau, device='cuda'):
 
     # similar error rate
     # option 1
-    pos_pairs = torch.linalg.diagonal(sim_matrix[:N,N+1:])
+    pos_pairs = torch.linalg.diagonal(sim_matrix[:N,N:])
 
     # option 2
     #pos_pairs = sim_positive_pairs(out_left,out_right)
@@ -208,7 +208,7 @@ def simclr_loss_vectorized(out_left, out_right, tau, device='cuda'):
     loss = None
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    loss = torch.sum(-torch.log(numerator/denom[N+1:])-torch.log(numerator/denom[:N]))/(2*N)
+    loss = torch.sum(-torch.log(numerator/denom[N:])-torch.log(numerator/denom[:N]))/(2*N)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     
