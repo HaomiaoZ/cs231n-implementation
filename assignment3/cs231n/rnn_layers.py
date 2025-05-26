@@ -464,9 +464,32 @@ def lstm_forward(x, h0, Wx, Wh, b):
     # You should use the lstm_step_forward function that you just defined.      #
     #############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    
+    #  rnn forward function, add c and change to lstm step forward
+    N,T,D = np.shape(x)
+    _, H = np.shape(h0)
+    
+    prev_h = h0
+    h = np.zeros((T, N, H))
+    prev_c = np.zeros((N, H))
+    x_temp = np.swapaxes(x, 0, 1) #(N,T,D) -> (T,N,D)
+    cache =[]
 
-    pass
+    for i in range(T):
+        # step
+        next_h, next_c, cache_temp = lstm_step_forward(x_temp[i], prev_h, prev_c, Wx, Wh, b)
 
+        prev_h = next_h
+        prev_c = next_c
+
+        # store variable in h and cache
+        # stack to (T, N, D) then swap axes
+        h[i] = next_h
+        cache.append(cache_temp)
+        
+    
+    h = np.swapaxes(h, 0, 1) #(T,N,D) -> (N,T,D)
+    
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
     #                               END OF YOUR CODE                             #
@@ -496,7 +519,33 @@ def lstm_backward(dh, cache):
     #############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    N, T, H = np.shape(dh)
+    (_, _, _, _, _, _, _, _, Wx, _, _, _, _)= cache[0] # for D
+    D,_ =np.shape(Wx)
+
+    dh_swap = np.swapaxes(dh, 0, 1) #(N,T,H)-> (T,N,H)
+    dx = np.zeros((T,N,D))
+    dh0 = np.zeros((N,H))
+    dWx = np.zeros((D,4*H))
+    dWh = np.zeros((H,4*H))
+    db = np.zeros((4*H,))
+    dh_temp = dh0
+    dc_temp = np.zeros((N,H))
+
+    # what is grad at the end of cell state? dc[T] should be one i think
+    # A: it is zero
+    # what grad should be passed back c and h are separated
+    # for h have to pass back upstream h grad (dh_temp) + local h grad(dh_swap[i]) 
+    for i in reversed(range(T)):
+
+        dx_temp, dh_temp, dc_temp, dWx_temp, dWh_temp, db_temp = lstm_step_backward(dh_swap[i]+dh_temp, dc_temp, cache[i]) #
+        dx[i]=dx_temp
+        dWx+=dWx_temp
+        dWh+=dWh_temp
+        db+=db_temp
+    dh0 = dh_temp
+
+    dx = np.swapaxes(dx, 0, 1) #(T, N, D) ->(N, T, D)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
