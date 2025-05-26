@@ -352,8 +352,17 @@ def lstm_step_forward(x, prev_h, prev_c, Wx, Wh, b):
     # You may want to use the numerically stable sigmoid implementation above.  #
     #############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    N,H = prev_h.shape
 
-    pass
+    a = x@Wx+prev_h@Wh+b #(N, 4H)
+    i = sigmoid(a[:,:H]) #(N,H)
+    f = sigmoid(a[:,H:2*H]) #(N,H)
+    o = sigmoid(a[:,2*H:3*H]) #(N,H)
+    g = np.tanh(a[:,3*H:]) #(N,H)
+    next_c = f*prev_c+i*g #(N,H)
+    next_h = o*np.tanh(next_c) #(N,H)
+
+    cache = (a, i, f, o, g, x, prev_h, prev_c, Wx, Wh, b, next_c, next_h)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
@@ -388,7 +397,36 @@ def lstm_step_backward(dnext_h, dnext_c, cache):
     #############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    #d(tanh(in)) = 1-tanh(in)^2, times upstream grad, next_h = tanh(in)
+    #d(sigmoid(in)) = sigmoid(in)*(1-sigmoid(in)) chain on upstream grad
+    (a, i, f, o, g, x, prev_h, prev_c, Wx, Wh, b, next_c, next_h) = cache
+    
+    N,H = prev_h.shape
+    da = np.zeros((N,4*H)) #(N,4H)
+
+    # work on equations in stepforward in backward order
+    do = np.tanh(next_c)*dnext_h
+
+    dtanh_out = dnext_h*o #grad at output of tanh(next_c)
+    dnext_c+= (1-np.tanh(next_c)**2)*dtanh_out # add grad backprop from dnext_h
+
+    dprev_c = f*dnext_c
+    df = prev_c*dnext_c
+    di = g*dnext_c
+    dg = i*dnext_c
+
+    # backward to da in g,o,f,i order
+    da[:,3*H:] = (1-g**2)*dg 
+    da[:,2*H:3*H] = o*(1-o)*do
+    da[:,H:2*H] = f*(1-f)*df
+    da[:,:H] = i*(1-i)*di
+
+    dx = da@Wx.T #(N,4H)*(4H,D)
+    dWx = x.T@da #(D,N)*(N,4H)
+
+    dprev_h = da@Wh.T
+    dWh = prev_h.T@da
+    db = np.sum(da, axis =0)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
